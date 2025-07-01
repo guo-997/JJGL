@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Box = require('../models/Box');
+// 使用兼容层来支持MySQL
+const { Box } = require('../models/compat');
 
 // 根据NFC ID获取盒子信息
 router.get('/scan/:nfcId', async (req, res) => {

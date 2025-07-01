@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
@@ -8,12 +7,16 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 
+// 导入MySQL数据库配置
+const { testConnection, syncDatabase } = require('./models/mysql');
+
 // 导入路由
 const boxRoutes = require('./routes/boxes');
 const itemRoutes = require('./routes/items');
 const nfcRoutes = require('./routes/nfc');
 const fileRoutes = require('./routes/files');
 const dashboardRoutes = require('./routes/dashboard');
+const healthRoutes = require('./routes/health');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -55,15 +58,21 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/assets', express.static(path.join(__dirname, '../../frontend/assets')));
 app.use('/js', express.static(path.join(__dirname, '../../frontend/js')));
 
-// 数据库连接
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/nfc-home-manager', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-.then(() => console.log('✅ MongoDB 连接成功'))
-.catch(err => console.error('❌ MongoDB 连接失败:', err));
+// 数据库连接和同步
+const initDatabase = async () => {
+  try {
+    await testConnection();
+    await syncDatabase();
+  } catch (error) {
+    console.error('❌ 数据库初始化失败:', error);
+    process.exit(1);
+  }
+};
+
+initDatabase();
 
 // API路由
+app.use('/api/health', healthRoutes);
 app.use('/api/boxes', boxRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/nfc', nfcRoutes);

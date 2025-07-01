@@ -31,7 +31,7 @@ apt update && apt upgrade -y
 
 # 2. 安装必要软件
 echo -e "${YELLOW}🔧 安装必要软件...${NC}"
-apt install -y curl git nginx software-properties-common
+apt install -y curl git nginx software-properties-common mysql-client
 
 # 3. 安装Node.js
 echo -e "${YELLOW}📦 安装 Node.js ${NODE_VERSION}...${NC}"

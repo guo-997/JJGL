@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const Item = require('../models/Item');
-const Box = require('../models/Box');
+// 使用兼容层来支持MySQL
+const { Item, Box } = require('../models/compat');
 
 // 获取所有物品
 router.get('/', async (req, res) => {
