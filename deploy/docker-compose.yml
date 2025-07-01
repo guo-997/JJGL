@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # NFC应用服务
+  nfc-app:
+    build: .
+    container_name: nfc-home-manager
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - FRONTEND_URL=${FRONTEND_URL}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    depends_on:
+      - mongo
+    networks:
+      - nfc-network
+
+  # MongoDB数据库
+  mongo:
+    image: mongo:6.0
+    container_name: nfc-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=nfc_home_manager
+    volumes:
+      - mongo-data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - nfc-network
+
+  # Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: nfc-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend:/var/www/nfc-home-manager/frontend:ro
+      - ./uploads:/var/www/nfc-home-manager/uploads:ro
+      # 如果有SSL证书，取消注释下一行
+      # - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - nfc-app
+    networks:
+      - nfc-network
+
+volumes:
+  mongo-data:
+    driver: local
+
+networks:
+  nfc-network:
+    driver: bridge 
