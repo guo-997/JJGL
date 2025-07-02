@@ -17,7 +17,7 @@ services:
       - MYSQL_HOST=101.35.16.205
       - MYSQL_PORT=13306
       - MYSQL_USER=nfc_user
-      - MYSQL_PASSWORD=Guo@112233
+      - MYSQL_PASSWORD=Gpw@112233
       - MYSQL_DATABASE=nfc_home_manager
       - JWT_SECRET=nfc-home-manager-super-secret-key-2024
       - JWT_EXPIRES_IN=24h

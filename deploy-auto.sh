@@ -12,7 +12,7 @@ GITHUB_REPO="https://github.com/guo-997/JJGL.git"
 MYSQL_HOST="101.35.16.205"
 MYSQL_PORT="13306"
 MYSQL_USER="nfc_user"
-MYSQL_PASS="Guo@112233"
+MYSQL_PASS="Gpw@112233"
 MYSQL_DB="nfc_home_manager"
 
 # 颜色输出
