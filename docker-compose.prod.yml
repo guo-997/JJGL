@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Node.js应用
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nfc-home-manager-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - MYSQL_HOST=101.35.16.205
+      - MYSQL_PORT=13306
+      - MYSQL_USER=nfc_user
+      - MYSQL_PASSWORD=Guo@112233
+      - MYSQL_DATABASE=nfc_home_manager
+      - JWT_SECRET=nfc-home-manager-super-secret-key-2024
+      - JWT_EXPIRES_IN=24h
+      - MAX_FILE_SIZE=50000000
+      - UPLOAD_PATH=/app/uploads
+      - LOG_LEVEL=info
+      - FRONTEND_URL=http://101.35.16.205
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    networks:
+      - nfc-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: nfc-home-manager-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./frontend:/usr/share/nginx/html
+      - ./uploads:/usr/share/nginx/html/uploads
+    depends_on:
+      - app
+    networks:
+      - nfc-network
+
+networks:
+  nfc-network:
+    driver: bridge
+
+volumes:
+  uploads:
+  logs: 
