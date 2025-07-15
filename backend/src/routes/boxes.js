@@ -1,37 +1,36 @@
 const express = require('express');
 const router = express.Router();
-// 使用兼容层来支持MySQL
-const { Box, Item } = require('../models/compat');
+// 直接使用MySQL模型
+const { Box, Item } = require('../models/mysql');
+const { Op } = require('sequelize');
 
 // 获取所有盒子
 router.get('/', async (req, res) => {
   try {
     const { search, status, limit = 20, page = 1 } = req.query;
     
-    let query = {};
+    let where = {};
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { code: { $regex: search, $options: 'i' } }
+      where[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { description: { [Op.like]: `%${search}%` } }
       ];
     }
-    if (status) {
-      query.status = status;
-    }
 
-    const boxes = await Box.find(query)
-      .sort({ updatedAt: -1 })
-      .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
+    const boxes = await Box.findAll({
+      where,
+      order: [['updated_at', 'DESC']],
+      limit: parseInt(limit),
+      offset: (parseInt(page) - 1) * parseInt(limit)
+    });
 
     // 手动计算物品数量
     for (let box of boxes) {
-      const itemCount = await Item.countDocuments({ boxId: box._id });
-      box.itemCount = itemCount;
+      const itemCount = await Item.count({ where: { box_id: box.id } });
+      box.dataValues.itemCount = itemCount;
     }
 
-    const total = await Box.countDocuments(query);
+    const total = await Box.count({ where });
 
     res.json({
       success: true,
@@ -57,7 +56,7 @@ router.get('/nfc/:nfcId', async (req, res) => {
   try {
     const { nfcId } = req.params;
     
-    const box = await Box.findOne({ nfcId });
+    const box = await Box.findOne({ where: { nfc_id: nfcId } });
     
     if (!box) {
       return res.status(404).json({
@@ -66,18 +65,16 @@ router.get('/nfc/:nfcId', async (req, res) => {
       });
     }
 
-    // 更新扫描记录
-    box.lastScanned = new Date();
-    box.scanCount += 1;
-    await box.save();
-
     // 获取物品数量
-    const itemCount = await Item.countDocuments({ boxId: box._id });
-    box.itemCount = itemCount;
+    const itemCount = await Item.count({ where: { box_id: box.id } });
+    
+    // 添加物品数量到返回数据
+    const boxData = box.toJSON();
+    boxData.itemCount = itemCount;
 
     res.json({
       success: true,
-      data: box
+      data: boxData
     });
   } catch (error) {
     res.status(500).json({
@@ -120,8 +117,7 @@ router.get('/:id', async (req, res) => {
 // 创建新盒子
 router.post('/', async (req, res) => {
   try {
-    const box = new Box(req.body);
-    await box.save();
+    const box = await Box.create(req.body);
     
     res.status(201).json({
       success: true,

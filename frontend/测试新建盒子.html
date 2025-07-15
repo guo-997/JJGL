@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试新建盒子功能</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .animate-slide-up {
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold mb-4">测试新建盒子功能</h1>
+        <button id="test-add-box" class="w-full py-3 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all">
+            点击测试新建盒子
+        </button>
+        
+        <div class="mt-4 p-4 bg-gray-100 rounded">
+            <h3 class="font-semibold mb-2">测试说明：</h3>
+            <ul class="text-sm text-gray-600 space-y-1">
+                <li>1. 点击上面的按钮</li>
+                <li>2. 应该会弹出新建盒子的模态框</li>
+                <li>3. 填写信息并提交</li>
+                <li>4. 检查是否成功创建</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 通知容器 -->
+    <div id="notification-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <script>
+        // 简化版的应用类，只包含新建盒子功能
+        class TestApp {
+            constructor() {
+                this.apiBase = '/api';
+                this.init();
+            }
+
+            init() {
+                const testBtn = document.getElementById('test-add-box');
+                testBtn.addEventListener('click', () => {
+                    this.showAddBoxModal();
+                });
+            }
+
+            // 显示新建盒子模态框
+            showAddBoxModal() {
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4';
+                modal.innerHTML = `
+                  <div class="bg-white rounded-2xl p-6 max-w-md w-full animate-slide-up">
+                    <div class="flex justify-between items-center mb-6">
+                      <h3 class="text-lg font-bold text-gray-900">新建储物盒</h3>
+                      <button onclick="this.closest('.fixed').remove()" class="text-gray-500 hover:text-gray-700">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                      </button>
+                    </div>
+                    
+                    <form id="add-box-form" class="space-y-4">
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">盒子名称 *</label>
+                        <input type="text" id="box-name" name="name" required 
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                               placeholder="请输入盒子名称">
+                      </div>
+                      
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">存放位置</label>
+                        <input type="text" id="box-location" name="location" 
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                               placeholder="如：客厅、卧室、书房">
+                      </div>
+                      
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">描述说明</label>
+                        <textarea id="box-description" name="description" rows="3"
+                                  class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                  placeholder="简单描述这个盒子的用途"></textarea>
+                      </div>
+                      
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">容量</label>
+                        <input type="number" id="box-capacity" name="capacity" min="1" value="10"
+                               class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                               placeholder="预计可容纳的物品数量">
+                      </div>
+                      
+                      <div class="flex space-x-3 mt-6">
+                        <button type="button" onclick="this.closest('.fixed').remove()" 
+                                class="flex-1 py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-all">
+                          取消
+                        </button>
+                        <button type="submit" 
+                                class="flex-1 py-3 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all">
+                          创建盒子
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                // 添加表单提交事件
+                const form = document.getElementById('add-box-form');
+                form.addEventListener('submit', async (e) => {
+                  e.preventDefault();
+                  await this.createBox(form);
+                });
+                
+                // 聚焦到第一个输入框
+                setTimeout(() => {
+                  document.getElementById('box-name').focus();
+                }, 100);
+            }
+
+            // 创建盒子
+            async createBox(form) {
+                const formData = new FormData(form);
+                const data = {
+                  name: formData.get('name'),
+                  location: formData.get('location'),
+                  description: formData.get('description'),
+                  capacity: parseInt(formData.get('capacity')) || 10
+                };
+
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn.textContent;
+                
+                try {
+                  submitBtn.textContent = '创建中...';
+                  submitBtn.disabled = true;
+                  
+                  const response = await fetch(`${this.apiBase}/boxes`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                  });
+
+                  const result = await response.json();
+                  
+                  if (result.success) {
+                    this.showNotification('盒子创建成功！', 'success');
+                    
+                    // 关闭模态框
+                    form.closest('.fixed').remove();
+                    
+                    console.log('新创建的盒子:', result.data);
+                  } else {
+                    throw new Error(result.message || '创建失败');
+                  }
+                } catch (error) {
+                  console.error('创建盒子失败:', error);
+                  this.showNotification('创建盒子失败: ' + error.message, 'error');
+                } finally {
+                  submitBtn.textContent = originalText;
+                  submitBtn.disabled = false;
+                }
+            }
+
+            // 显示通知
+            showNotification(message, type = 'info', duration = 3000) {
+                const container = document.getElementById('notification-container');
+                
+                const notification = document.createElement('div');
+                notification.className = `
+                  notification flex items-center p-4 rounded-lg shadow-lg border-l-4 transform translate-x-full transition-all duration-300
+                  ${type === 'success' ? 'bg-green-50 border-green-500 text-green-800' :
+                    type === 'error' ? 'bg-red-50 border-red-500 text-red-800' :
+                    'bg-blue-50 border-blue-500 text-blue-800'}
+                `;
+
+                const icon = {
+                  success: '✅',
+                  error: '❌', 
+                  info: 'ℹ️'
+                }[type];
+
+                notification.innerHTML = `
+                  <span class="mr-3 text-lg">${icon}</span>
+                  <span class="flex-1">${message}</span>
+                  <button class="ml-3 text-lg hover:opacity-70" onclick="this.parentElement.remove()">×</button>
+                `;
+
+                container.appendChild(notification);
+
+                // 动画进入
+                setTimeout(() => {
+                  notification.classList.remove('translate-x-full');
+                  notification.classList.add('translate-x-0');
+                }, 100);
+
+                // 自动移除
+                setTimeout(() => {
+                  if (notification.parentElement) {
+                    notification.classList.add('translate-x-full');
+                    setTimeout(() => notification.remove(), 300);
+                  }
+                }, duration);
+            }
+        }
+
+        // 初始化测试应用
+        document.addEventListener('DOMContentLoaded', () => {
+            new TestApp();
+        });
+    </script>
+</body>
+</html> 

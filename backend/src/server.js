@@ -21,17 +21,52 @@ const healthRoutes = require('./routes/health');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 安全中间件
+// 安全中间件 - 优化的CSP配置
 app.use(helmet({
   crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdn.jsdelivr.net"],
-      imgSrc: ["'self'", "data:", "https://picsum.photos"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdn.jsdelivr.net"],
-      connectSrc: ["'self'"]
+      styleSrc: [
+        "'self'", 
+        "'unsafe-inline'", 
+        "https://cdn.tailwindcss.com", 
+        "https://cdn.jsdelivr.net", 
+        "https://fonts.googleapis.com"
+      ],
+      scriptSrc: [
+        "'self'", 
+        "'unsafe-inline'", 
+        "'unsafe-eval'", // TailwindCSS需要
+        "https://cdn.tailwindcss.com", 
+        "https://cdn.jsdelivr.net"
+      ],
+      imgSrc: [
+        "'self'", 
+        "data:", 
+        "blob:",
+        "https://picsum.photos",
+        "https://images.unsplash.com", // 如果使用Unsplash图片
+        "https://*.googleapis.com" // Google服务图片
+      ],
+      fontSrc: [
+        "'self'", 
+        "data:",
+        "https://fonts.gstatic.com", 
+        "https://cdn.jsdelivr.net"
+      ],
+      connectSrc: [
+        "'self'",
+        "https://api.unsplash.com", // 如果连接到Unsplash API
+        "ws:", // WebSocket支持
+        "wss:" // 安全WebSocket支持
+      ],
+      objectSrc: ["'none'"], // 阻止插件
+      mediaSrc: ["'self'", "data:", "blob:"],
+      frameSrc: ["'self'"],
+      frameAncestors: ["'self'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"]
     }
   }
 }));
@@ -110,10 +145,10 @@ app.use((req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 服务器运行在 http://localhost:${PORT}`);
-  console.log(`📱 前端界面: http://localhost:${PORT}`);
-  console.log(`🔌 API接口: http://localhost:${PORT}/api`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 服务器运行在 http://0.0.0.0:${PORT}`);
+  console.log(`📱 前端界面: http://101.35.16.205:${PORT}`);
+  console.log(`🔌 API接口: http://101.35.16.205:${PORT}/api`);
 });
 
 module.exports = app; 

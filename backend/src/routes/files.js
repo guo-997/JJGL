@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const router = express.Router();
-const Item = require('../models/Item');
+const { Item } = require('../models/mysql');
 
 // 确保上传目录存在
 const uploadDir = path.join(__dirname, '../../uploads');

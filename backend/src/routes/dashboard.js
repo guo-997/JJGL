@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
-// 使用兼容层来支持MySQL
-const { Box, Item } = require('../models/compat');
+// 直接使用MySQL模型
+const { Box, Item } = require('../models/mysql');
+const { Op } = require('sequelize');
 
 // 获取仪表板统计数据
 router.get('/stats', async (req, res) => {
@@ -14,10 +15,10 @@ router.get('/stats', async (req, res) => {
       lowStockItems,
       recentActivity
     ] = await Promise.all([
-      Box.countDocuments(),
-      Item.countDocuments(),
-      Box.countDocuments({ lastScanned: { $exists: true, $ne: null } }),
-      Item.countDocuments({ status: { $in: ['low', 'empty'] } }),
+      Box.count(),
+      Item.count(),
+      Box.count({ where: { nfc_id: { [Op.not]: null } } }),
+      Item.count({ where: { condition_status: { [Op.in]: ['poor', 'fair'] } } }),
       getRecentActivity()
     ]);
 
@@ -50,27 +51,33 @@ router.get('/stats', async (req, res) => {
 async function getRecentActivity() {
   try {
     // 获取最近更新的盒子
-    const recentBoxes = await Box.find()
-      .sort({ updatedAt: -1 })
-      .limit(5)
-      .select('name updatedAt lastScanned');
+    const recentBoxes = await Box.findAll({
+      attributes: ['name', 'updated_at', 'nfc_id'],
+      order: [['updated_at', 'DESC']],
+      limit: 5
+    });
 
     // 获取最近添加的物品
-    const recentItems = await Item.find()
-      .populate('boxId', 'name')
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .select('name boxId createdAt');
+    const recentItems = await Item.findAll({
+      attributes: ['name', 'box_id', 'created_at'],
+      include: [{
+        model: Box,
+        as: 'box',
+        attributes: ['name']
+      }],
+      order: [['created_at', 'DESC']],
+      limit: 5
+    });
 
     const activities = [];
 
     // 处理盒子活动
     recentBoxes.forEach(box => {
-      if (box.lastScanned) {
+      if (box.nfc_id) {
         activities.push({
-          type: 'scan',
-          message: `扫描了盒子 "${box.name}"`,
-          time: box.lastScanned,
+          type: 'nfc',
+          message: `配置了NFC标签的盒子 "${box.name}"`,
+          time: box.updated_at,
           icon: 'fa-credit-card',
           color: 'primary'
         });
@@ -81,8 +88,8 @@ async function getRecentActivity() {
     recentItems.forEach(item => {
       activities.push({
         type: 'add',
-        message: `添加了物品 "${item.name}" 到 "${item.boxId.name}"`,
-        time: item.createdAt,
+        message: `添加了物品 "${item.name}" 到 "${item.box ? item.box.name : '未知盒子'}"`,
+        time: item.created_at,
         icon: 'fa-plus',
         color: 'success'
       });
